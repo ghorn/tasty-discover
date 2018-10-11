@@ -12,6 +12,7 @@ module Test.Tasty.Discover (
   , showTests
   ) where
 
+import           Data.Char                (isAlpha)
 import           Data.List                (dropWhileEnd, intercalate,
                                            isPrefixOf, nub, stripPrefix)
 import qualified Data.Map.Strict          as M
@@ -28,7 +29,7 @@ import           System.FilePath.Glob     (compile, globDir1, match)
 import           System.IO                (IOMode (ReadMode), openFile)
 import           Test.Tasty.Config        (Config (..), GlobPattern)
 import           Test.Tasty.Generator     (Generator (..), Test (..),
-                                           generators, getGenerators, mkTest,
+                                           generators, getGenerators,
                                            showSetup)
 
 -- | Main function generator, along with all the boilerplate which
@@ -96,12 +97,35 @@ findTests src config = do
 
 -- | Extract the test names from discovered modules.
 extractTests :: FilePath -> String -> [Test]
-extractTests file = mkTestDeDuped . isKnownPrefix . parseTest
+extractTests _ contents  = mkTestDeDuped . isKnownPrefix . parseTest $ contents
   where
-    mkTestDeDuped = map (mkTest file) . nub
+    mkTestDeDuped = map (Test moduleName) . nub
     isKnownPrefix = filter (\g -> any (checkPrefix g) generators)
     checkPrefix g = (`isPrefixOf` g) . generatorPrefix
     parseTest     = map fst . concatMap lex . lines
+
+    moduleName = parseModuleName contents
+
+parseModuleName :: String -> String
+parseModuleName contents = parseModuleName' (lines contents)
+  where
+    isWhitespace ' ' = True
+    isWhitespace _ = False
+
+    isModuleNameChar '.' = True
+    isModuleNameChar c = isAlpha c
+
+    parseModuleName' (line:otherLines) = case dropWhile isWhitespace line of
+      'm':'o':'d':'u':'l':'e':' ':restOfLine -> takeWhile isModuleNameChar restOfLine
+      _ -> parseModuleName' otherLines
+    parseModuleName' [] =
+      error $
+      "unable to parse module name from file\n" ++
+      "=================================================\n" ++
+      contents
+
+
+
 
 -- | Show the imports.
 showImports :: [String] -> String

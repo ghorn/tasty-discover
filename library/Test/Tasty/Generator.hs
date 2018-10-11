@@ -34,11 +34,6 @@ data Test = Test
   , testFunction :: String -- ^ Function name.
   } deriving (Eq, Show, Ord)
 
--- | 'Test' constructor.
-mkTest :: FilePath -> String -> Test
-mkTest = Test . replacePathSepTo '.' . dropExtension
-  where replacePathSepTo c1 = map $ \c2 -> if isPathSeparator c2 then c1 else c2
-
 -- | The generator type.
 data Generator = Generator
   { generatorPrefix :: String          -- ^ Generator prefix.
@@ -46,6 +41,11 @@ data Generator = Generator
   , generatorClass  :: String          -- ^ Generator class.
   , generatorSetup  :: Test -> String  -- ^ Generator setup.
   }
+
+-- | 'Test' constructor.
+mkTest :: FilePath -> String -> Test
+mkTest = Test . replacePathSepTo '.' . dropExtension
+  where replacePathSepTo c1 = map $ \c2 -> if isPathSeparator c2 then c1 else c2
 
 -- | Module import qualifier.
 qualifyFunction :: Test -> String
